@@ -1,60 +1,64 @@
-from collections import Counter, deque
-import sys
+from collections import defaultdict
 
-class WoodenPiece:
-    def __init__(self, text, cost):
-        self.text = text
-        self.cost = cost
-        self.counter = Counter(text)
+def min_cost_with_rearrangement(target, pieces, costs):
+    target_freq = defaultdict(int)
+    for ch in target:
+        target_freq[ch] += 1
 
-class StrangeStringSolver:
-    def __init__(self, target, pieces, costs):
-        self.target = target
-        self.pieces = [WoodenPiece(pieces[i], costs[i]) for i in range(len(pieces))]
+    piece_freqs = []
+    for piece in pieces:
+        freq = defaultdict(int)
+        for ch in piece:
+            freq[ch] += 1
+        piece_freqs.append(freq)
 
-    def min_cost_with_rearrangement(self):
-        # DP[i] = min cost to form first i characters of target
-        dp = [float('inf')] * (len(self.target) + 1)
-        dp[0] = 0
+    remaining = target_freq.copy()
+    total_cost = 0
 
-        for i in range(len(self.target) + 1):
-            for piece in self.pieces:
-                need = Counter(self.target[i:])
-                can_use = piece.counter & need
-                if not can_use:
-                    continue
-                used = sum(can_use.values())
-                if i + used <= len(self.target):
-                    dp[i + used] = min(dp[i + used], dp[i] + piece.cost)
-        return dp[len(self.target)]
+    while any(remaining.values()):
+        best_piece = -1
+        best_gain = 0
+        for i, freq in enumerate(piece_freqs):
+            gain = sum(min(freq[ch], remaining[ch]) for ch in remaining)
+            if gain > best_gain:
+                best_gain = gain
+                best_piece = i
+        if best_piece == -1:
+            return float('inf')  # Cannot form target
+        total_cost += costs[best_piece]
+        for ch in piece_freqs[best_piece]:
+            remaining[ch] = max(0, remaining[ch] - piece_freqs[best_piece][ch])
+    return total_cost
 
-    def min_cost_without_rearrangement(self):
-        dp = [float('inf')] * (len(self.target) + 1)
-        dp[0] = 0
+def min_cost_without_rearrangement(target, pieces, costs):
+    n = len(target)
+    dp = [float('inf')] * (n + 1)
+    dp[0] = 0
 
-        for i in range(len(self.target) + 1):
-            for piece in self.pieces:
-                j = i
-                k = 0
-                while j < len(self.target) and k < len(piece.text):
-                    if self.target[j] == piece.text[k]:
-                        j += 1
+    for i in range(n + 1):
+        if dp[i] == float('inf'):
+            continue
+        for j, piece in enumerate(pieces):
+            k = i
+            for ch in piece:
+                if k < n and target[k] == ch:
                     k += 1
-                if j > i:
-                    dp[j] = min(dp[j], dp[i] + piece.cost)
-        return dp[len(self.target)]
+            if k > i:
+                dp[k] = min(dp[k], dp[i] + costs[j])
+    return dp[n] if dp[n] != float('inf') else -1
 
+# 🔹 Main Program
 def main():
-    input_lines = [line.strip() for line in sys.stdin if line.strip()]
-    target = input_lines[0]
-    n = int(input_lines[1])
-    pieces = input_lines[2].split()
-    costs = list(map(int, input_lines[3].split()))
+    target = input().strip()
+    n = int(input())
+    pieces = input().strip().split()
+    costs = list(map(int, input().strip().split()))
 
-    solver = StrangeStringSolver(target, pieces, costs)
-    cost_rearranged = solver.min_cost_with_rearrangement()
-    cost_ordered = solver.min_cost_without_rearrangement()
+    cost_rearranged = min_cost_with_rearrangement(target, pieces, costs)
+    cost_ordered = min_cost_without_rearrangement(target, pieces, costs)
+
     print(cost_ordered - cost_rearranged)
 
+# Run the program
 if __name__ == "__main__":
     main()
