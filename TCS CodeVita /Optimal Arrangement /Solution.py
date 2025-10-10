@@ -4,7 +4,7 @@ class Goodie:
     def __init__(self, label, weight, position):
         self.label = label
         self.weight = weight
-        self.position = position  # position on land (1-based index)
+        self.position = position
 
 class CargoShipsArrangement:
     def __init__(self, goodies, k):
@@ -35,7 +35,9 @@ class CargoShipsArrangement:
 
     def get_kth_arrangement(self):
         min_cost, arrangements = self.find_min_cost_arrangements()
-        kth_arrangement = arrangements[self.k-1]  # Kth arrangement (1-based)
+        if self.k > len(arrangements) or self.k < 1:
+            raise IndexError("Kth arrangement does not exist")
+        kth_arrangement = arrangements[self.k-1]
         return min_cost, kth_arrangement
 
 def main():
@@ -48,10 +50,12 @@ def main():
     k = int(input().strip())
 
     solver = CargoShipsArrangement(goodies, k)
-    min_cost, arrangement = solver.get_kth_arrangement()
-
-    print(min_cost)
-    print(" ".join(arrangement))
+    try:
+        min_cost, arrangement = solver.get_kth_arrangement()
+        print(min_cost)
+        print(" ".join(arrangement))
+    except IndexError as e:
+        print(str(e))
 
 if __name__ == "__main__":
     main()
