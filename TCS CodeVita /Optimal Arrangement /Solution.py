@@ -1,44 +1,63 @@
-from itertools import permutations
-
 class Goodie:
     def __init__(self, label, weight, position):
         self.label = label
         self.weight = weight
-        self.position = position
+        self.position = position  # Position on land (1-indexed)
 
 class CargoShipsArrangement:
     def __init__(self, goodies, k):
         self.goodies = goodies
         self.k = k
+        # Unique sorted labels of cargo ships
         self.unique_labels = sorted(set(g.label for g in goodies))
+        self.label_count = len(self.unique_labels)
+        # Map from label to index for quick lookup
+        self.label_indices = {label: i for i, label in enumerate(self.unique_labels)}
+        # Group goodies by their cargo ship label index
+        self.goodies_by_label = [[] for _ in range(self.label_count)]
+        for good in goodies:
+            idx = self.label_indices[good.label]
+            self.goodies_by_label[idx].append(good)
 
-    def calculate_cost(self, arrangement):
-        label_to_position = {label: i+1 for i, label in enumerate(arrangement)}
-        total_cost = 0
-        for good in self.goodies:
-            dist = abs(good.position - label_to_position[good.label])
-            total_cost += good.weight * dist
-        return total_cost
+        self.used = [False] * self.label_count
+        self.current_arrangement = [None] * self.label_count
+        self.min_cost = float('inf')
+        self.kth_arrangement = None
+        self.count = 0  # count of minimum cost arrangements found
 
-    def find_min_cost_arrangements(self):
-        min_cost = float('inf')
-        valid_arrangements = []
-        for perm in permutations(self.unique_labels):
-            cost = self.calculate_cost(perm)
-            if cost < min_cost:
-                min_cost = cost
-                valid_arrangements = [perm]
-            elif cost == min_cost:
-                valid_arrangements.append(perm)
-        valid_arrangements.sort()
-        return min_cost, valid_arrangements
+    def backtrack(self, pos=0, current_cost=0):
+        # If full arrangement formed
+        if pos == self.label_count:
+            if current_cost < self.min_cost:
+                self.min_cost = current_cost
+                self.count = 1
+                self.kth_arrangement = self.current_arrangement[:]
+            elif current_cost == self.min_cost:
+                self.count += 1
+                if self.count == self.k:
+                    self.kth_arrangement = self.current_arrangement[:]
+            return
 
-    def get_kth_arrangement(self):
-        min_cost, arrangements = self.find_min_cost_arrangements()
-        if self.k > len(arrangements) or self.k < 1:
-            raise IndexError("Kth arrangement does not exist")
-        kth_arrangement = arrangements[self.k-1]
-        return min_cost, kth_arrangement
+        # Prune if current cost exceeds minimum found
+        if current_cost > self.min_cost:
+            return
+
+        for i in range(self.label_count):
+            if not self.used[i]:
+                label = self.unique_labels[i]
+                # Calculate incremental cost for placing label at position pos
+                added_cost = 0
+                for good in self.goodies_by_label[i]:
+                    dist = abs(good.position - (pos + 1))
+                    added_cost += good.weight * dist
+
+                new_cost = current_cost + added_cost
+                if new_cost <= self.min_cost:
+                    self.used[i] = True
+                    self.current_arrangement[pos] = label
+                    self.backtrack(pos + 1, new_cost)
+                    self.used[i] = False
+                    self.current_arrangement[pos] = None
 
 def main():
     n = int(input().strip())
@@ -46,16 +65,15 @@ def main():
     for i in range(n):
         label, weight = input().strip().split()
         weight = int(weight)
-        goodies.append(Goodie(label, weight, i+1))
+        goodies.append(Goodie(label, weight, i + 1))
     k = int(input().strip())
 
     solver = CargoShipsArrangement(goodies, k)
-    try:
-        min_cost, arrangement = solver.get_kth_arrangement()
-        print(min_cost)
-        print(" ".join(arrangement))
-    except IndexError as e:
-        print(str(e))
+    solver.backtrack()
+
+    print(solver.min_cost)
+    print(" ".join(solver.kth_arrangement))
+
 
 if __name__ == "__main__":
     main()
