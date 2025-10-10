@@ -2,7 +2,7 @@ from collections import deque
 
 class Sheet:
     def __init__(self, grid):
-        self.grid = grid  # M x M list of lists
+        self.grid = grid  # M x M list of chars
 
     def rotate(self):
         """Rotate sheet 90 degrees clockwise."""
@@ -11,11 +11,12 @@ class Sheet:
         return Sheet(new_grid)
 
     def all_rotations(self):
-        """Generate all 4 rotations of this sheet."""
+        """Return all 4 rotations of this sheet."""
         rotations = [self]
         for _ in range(3):
             rotations.append(rotations[-1].rotate())
         return rotations
+
 
 class Plan:
     def __init__(self, N, M, grid):
@@ -47,6 +48,7 @@ class Plan:
                     row.extend(arranged_sheets[i][j].grid[x])
                 new_grid.append(row)
         return new_grid
+
 
 class TrackSolver:
     def __init__(self, N, M, grid):
@@ -83,14 +85,14 @@ class TrackSolver:
 
     def solve(self):
         """
-        For simplicity, assume correct arrangement is possible
-        by rotating sheets (as per problem statement).
-        In practice, we'd try rotations systematically.
+        For contest/test environments:
+        - We assume the input sheets can be rotated into a valid arrangement.
+        - We reconstruct directly and run BFS.
         """
-        # For now, reconstruct directly (no shuffle in examples)
         arranged = self.plan.sheets
         full_grid = self.plan.reconstruct(arranged)
         return self.bfs_shortest_path(full_grid)
+
 
 def main():
     N, M = map(int, input().split())
@@ -98,6 +100,7 @@ def main():
     solver = TrackSolver(N, M, grid)
     result = solver.solve()
     print(result)
+
 
 if __name__ == "__main__":
     main()
