@@ -1,79 +1,39 @@
+from itertools import permutations
+
 class Goodie:
     def __init__(self, label, weight, position):
         self.label = label
         self.weight = weight
-        self.position = position  # Position on land (1-indexed)
-
-class CargoShipsArrangement:
-    def __init__(self, goodies, k):
-        self.goodies = goodies
-        self.k = k
-        # Unique sorted labels of cargo ships
-        self.unique_labels = sorted(set(g.label for g in goodies))
-        self.label_count = len(self.unique_labels)
-        # Map from label to index for quick lookup
-        self.label_indices = {label: i for i, label in enumerate(self.unique_labels)}
-        # Group goodies by their cargo ship label index
-        self.goodies_by_label = [[] for _ in range(self.label_count)]
-        for good in goodies:
-            idx = self.label_indices[good.label]
-            self.goodies_by_label[idx].append(good)
-
-        self.used = [False] * self.label_count
-        self.current_arrangement = [None] * self.label_count
-        self.min_cost = float('inf')
-        self.kth_arrangement = None
-        self.count = 0  # count of minimum cost arrangements found
-
-    def backtrack(self, pos=0, current_cost=0):
-        # If full arrangement formed
-        if pos == self.label_count:
-            if current_cost < self.min_cost:
-                self.min_cost = current_cost
-                self.count = 1
-                self.kth_arrangement = self.current_arrangement[:]
-            elif current_cost == self.min_cost:
-                self.count += 1
-                if self.count == self.k:
-                    self.kth_arrangement = self.current_arrangement[:]
-            return
-
-        # Prune if current cost exceeds minimum found
-        if current_cost > self.min_cost:
-            return
-
-        for i in range(self.label_count):
-            if not self.used[i]:
-                label = self.unique_labels[i]
-                # Calculate incremental cost for placing label at position pos
-                added_cost = 0
-                for good in self.goodies_by_label[i]:
-                    dist = abs(good.position - (pos + 1))
-                    added_cost += good.weight * dist
-
-                new_cost = current_cost + added_cost
-                if new_cost <= self.min_cost:
-                    self.used[i] = True
-                    self.current_arrangement[pos] = label
-                    self.backtrack(pos + 1, new_cost)
-                    self.used[i] = False
-                    self.current_arrangement[pos] = None
+        self.position = position
 
 def main():
-    n = int(input().strip())
+    n = int(input())
     goodies = []
     for i in range(n):
         label, weight = input().strip().split()
-        weight = int(weight)
-        goodies.append(Goodie(label, weight, i + 1))
-    k = int(input().strip())
+        goodies.append((label, int(weight), i+1))
+    k = int(input())
 
-    solver = CargoShipsArrangement(goodies, k)
-    solver.backtrack()
+    # Find all unique cargo ship labels
+    unique_labels = sorted(set(label for label, _, _ in goodies))
+    label_count = len(unique_labels)
+    min_cost = float('inf')
+    arrangements = []
 
-    print(solver.min_cost)
-    print(" ".join(solver.kth_arrangement))
+    # Try all arrangements of cargo ship labels
+    for perm in permutations(unique_labels):
+        label_to_pos = {label: i+1 for i, label in enumerate(perm)}
+        total_cost = sum(weight * abs(pos - label_to_pos[label]) for label, weight, pos in goodies)
+        if total_cost < min_cost:
+            min_cost = total_cost
+            arrangements = [perm]
+        elif total_cost == min_cost:
+            arrangements.append(perm)
 
+    # Sort minimum arrangements lexicographically and get k-th (1-based)
+    arrangements.sort()
+    print(min_cost)
+    print(" ".join(arrangements[k-1]))
 
 if __name__ == "__main__":
     main()
